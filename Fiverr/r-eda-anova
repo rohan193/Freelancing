@@ -1,0 +1,129 @@
+# Author : Rohan M. Nanaware
+# Date C.: 2019-03-03
+# Date M.: 2019-03-03
+# Purpose: EDA and Anova assignments
+
+# Use one of the suggested analysis tools from class 1 to perform the following tests: 
+#   1) Use the following data on cherry trees to determine if it is possible to predict 
+#       the volume of a cherry tree using its height or diameter (linear regression). 
+#       Run the regression using both height and diameter (multliple regression) and 
+#       compare your models. Which is a better predictor based on the information you have calculated. 
+#       You can use size of the residuals, p-values of the F-statistic, R squared value, etc. 
+#       to make this determination. 
+#       http://www.statsci.org/data/general/cherry.html
+#       
+#   2) Use the following dataset to perform a one-way ANOVA to determine if there is a 
+#       relationship between eye colour and flicker frequency. 
+#       http://www.statsci.org/data/general/flicker.html 
+#       Start by determining if your data is normal or if it needs to be normalized. 
+#       Draw an appropriate graph to examine your data visually for outliers. 
+#       Analyse your findings and write a short report (600 words). 
+#       Describe where you found the data and what the data represents. 
+#       Include screenshots or code as appropriate in your report to demonstrate how you 
+#       analysed the data as well as the actual statistics values calculated and the graphs 
+#       summarising the data. Identify which analysis tool you used for your analysis.
+
+#########################################################################################
+# load required libraries
+#########################################################################################
+
+library(dplyr)
+library(data.table)
+library(ggplot2)
+library(devtools)
+source_gist("524eade46135f6348140")
+
+#########################################################################################
+# import data
+#########################################################################################
+
+# set working directory to where the data is stored
+setwd("<Location of where you have stored the data eg. C:/R/Class 1/")
+cherry <- fread("cherry.txt",
+                header = T,
+                stringsAsFactors = F)
+flicker <- fread("flicker.txt",
+                  header = T,
+                  stringsAsFactors = F)
+summary(cherry)
+
+#########################################################################################
+# 1. Regression on cherry tree volume using either height or diameter
+#########################################################################################
+
+cherry %>%
+  ggplot(aes(y=Volume)) +
+  geom_boxplot()
+# dependend variable has one outlier value
+cherry %>%
+  ggplot(aes(y=Height)) +
+  geom_boxplot()
+cherry %>%
+  ggplot(aes(y=Diam)) +
+  geom_boxplot()
+# both Height and Diam do not have any outliers
+cherry %>%
+  ggplot(aes(x = Diam, y = Volume)) + 
+  geom_point() +
+  geom_smooth(method = "lm", formula = y ~ x) +
+  stat_smooth_func(geom="text",method="lm",hjust=0,parse=TRUE) +
+  geom_smooth(method="lm",se=FALSE) +
+  geom_point()
+# diameter has a linear relationship with volume
+cherry %>%
+  ggplot(aes(x = Height, y=Volume)) + 
+  geom_point() + 
+  geom_smooth(method = "lm", formula = y ~ x) +
+  stat_smooth_func(geom="text",method="lm",hjust=0,parse=TRUE) +
+  geom_smooth(method="lm",se=FALSE) +
+  geom_point()
+# height has a linear relationship that is not as well pronounced as diameter
+cherry_h <- lm(Volume~Height,cherry)
+summary(cherry_h)
+# Residual standard error: 13.4 on 29 degrees of freedom
+# Multiple R-squared:  0.3579,	Adjusted R-squared:  0.3358 
+# F-statistic: 16.16 on 1 and 29 DF,  p-value: 0.0003784
+cherry_d <- lm(Volume~Diam,cherry)
+summary(cherry_d)
+# Residual standard error: 4.252 on 29 degrees of freedom
+# Multiple R-squared:  0.9353,	Adjusted R-squared:  0.9331 
+# F-statistic: 419.4 on 1 and 29 DF,  p-value: < 2.2e-16
+# diamter is better predictor as confirmed by residual standard error, p value of fstatistic and R2
+
+#########################################################################################
+# 2. One way anova to determine if there is any relationship between eye color and flicker frequency
+#########################################################################################
+
+summary(flicker)
+flicker %>%
+  ggplot(aes(sample=Flicker)) +
+  stat_qq()
+# linear line in quantile-quantile plot indicates Flicker is normally distributed
+flicker %>%
+  ggplot(aes(y=Flicker)) +
+  geom_boxplot()
+# no outliers in data
+flicker %>%
+  ggplot(aes(x=Colour,y=Flicker)) +
+  geom_boxplot()
+# box plot indicates that there is significant difference in the flicker frequency for eye color brown and blue
+flicker %>%
+  group_by(Colour) %>%
+  summarise(n    = n(),
+            mean = mean(Flicker),
+            sd   = sd(Flicker))
+# mean and sd of Flicker by eye color. Blue has much higher Flicker frequency than Brown while Green hovers in the middle
+# performing one way anova
+res.aov = aov(Flicker~Colour,flicker)
+summary(res.aov)
+# results from one way anova
+# Df Sum Sq Mean Sq F value Pr(>F)  
+# Colour       2  23.00  11.499   4.802 0.0232 *
+# Residuals   16  38.31   2.394
+# p value lower than 0.05 for F-value of 4.802 indicates a significant difference between the Flicker 
+#   frequency of atleast 1 pair of eye colors. 
+# From our box plots we know that this pair is eye color Blue and Brown
+
+#########################################################################################
+# end of assignment
+#########################################################################################
